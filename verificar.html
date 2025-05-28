@@ -12,8 +12,8 @@
       font-family: sans-serif;
       margin: 0;
       padding: 2rem;
-      background: var(--bg, #f9f9f9);
-      color: var(--text, #111);
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -42,16 +42,21 @@
       color: red;
       text-align: center;
     }
+    .logo {
+      width: 150px;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
+  <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="Logo CheckGym" />
   <div class="card" id="result">
     <h1>Verificando Check-in...</h1>
   </div>
   <script>
     const resultDiv = document.getElementById('result');
     const urlParams = new URLSearchParams(window.location.search);
-    const timeParam = urlParams.get('time');
+    const timeParam = decodeURIComponent(urlParams.get('time'));
 
     if (!timeParam) {
       resultDiv.innerHTML = '<p class="fail">❌ Nenhum código foi encontrado.</p>';
@@ -59,17 +64,19 @@
       fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec")
         .then(res => res.json())
         .then(data => {
-          const match = data.find(entry => entry.time === timeParam);
+          const match = data.find(entry => decodeURIComponent(entry.time) === timeParam);
           if (!match) {
             resultDiv.innerHTML = '<p class="fail">❌ Check-in não encontrado.</p>';
           } else {
+            const imageSrc = match.imagem?.startsWith("data:image") ? match.imagem : '';
+            const imageTag = imageSrc ? `<img src="${imageSrc}" alt="Imagem do check-in" />` : '<p class="fail">⚠️ Imagem indisponível.</p>';
             resultDiv.innerHTML = `
               <h1>✅ Check-in Confirmado</h1>
               <p class="info"><strong>Data:</strong> ${match.data}</p>
               <p class="info"><strong>Hora:</strong> ${match.hora}</p>
               <p class="info"><strong>Localização:</strong> ${match.localizacao}</p>
               <p class="info"><strong>Coordenadas:</strong> ${match.latitude}, ${match.longitude}</p>
-              <img src="${match.imagem}" alt="Imagem do check-in" />
+              ${imageTag}
             `;
           }
         })
