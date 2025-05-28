@@ -127,7 +127,7 @@
 
       const timestamp = new Date().toLocaleString();
       const loc = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}\n${bairroCidadeEstado}` : 'Localização desconhecida';
-      const verifyUrl = `https://checkgym.vercel.app/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${encodeURIComponent(timestamp)}`;
+      const verifyUrl = `https://tulio34.github.io/checkgym/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${timestamp}`;
 
       QRCode.toDataURL(verifyUrl).then(qrData => {
         drawStamp(ctx, 10, canvas.height - 110, `${timestamp}\n${loc}`, qrData, () => {
