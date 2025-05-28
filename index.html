@@ -89,28 +89,30 @@
       return qr._el.querySelector("img");
     }
 
-async function salvarNaPlanilha(info) {
-  const url = "https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec";
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      body: JSON.stringify(info),
-      headers: { "Content-Type": "application/json" }
-    });
+const payload = {
+  imagem: capturedImageBase64,
+  data,
+  hora,
+  localizacao,
+  latitude,
+  longitude,
+  time
+};
 
-    if (!response.ok) {
-      console.error("Erro ao enviar dados:", response.statusText);
-      return false;
-    }
-
-    const text = await response.text();
-    console.log("Resposta do servidor:", text);
-    return true;
-  } catch (error) {
-    console.error("Erro na requisição:", error);
-    return false;
-  }
-}
+fetch('https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(payload)
+})
+.then(res => res.json())
+.then(data => {
+  console.log('✅ Dados enviados:', data);
+})
+.catch(err => {
+  console.error('❌ Erro ao enviar dados:', err);
+});
 
 
     snapBtn.onclick = () => {
