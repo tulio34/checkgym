@@ -4,108 +4,133 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CheckGym</title>
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/1/11/Blue_check.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling/lib/qr-code-styling.js"></script>
   <style>
-    :root {
-      color-scheme: light dark;
-    }
+    :root { color-scheme: light dark; }
     body {
       font-family: sans-serif;
       margin: 0;
-      padding: 2rem;
+      padding: 1rem;
       background: var(--bg);
       color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    .logo {
-      width: 120px;
-      margin-bottom: 1rem;
+    video, canvas {
+      border-radius: 12px;
+      max-width: 100%;
     }
-    #camera-container, #result {
-      margin-top: 1rem;
-      border: 2px solid #ccc;
+    #photoContainer {
+      position: relative;
+    }
+    .carimbo {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 8px;
       border-radius: 8px;
-      padding: 1rem;
+      font-size: 0.9rem;
     }
-    #canvas {
-      display: none;
-    }
-    #take-photo-btn, #new-photo-btn {
-      padding: 0.5rem 1rem;
+    button {
       margin-top: 1rem;
+      padding: 10px 20px;
+      border-radius: 8px;
       font-size: 1rem;
-      cursor: pointer;
     }
-    .hidden {
-      display: none;
-    }
+    #newPhotoBtn { display: none; }
   </style>
 </head>
 <body>
-  <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="CheckGym Logo" />
-  <div id="camera-container">
-    <video id="video" width="320" height="240" autoplay></video>
-    <canvas id="canvas" width="320" height="240"></canvas>
-    <br />
-    <button id="take-photo-btn">📸 Tirar Foto</button>
-    <button id="new-photo-btn" class="hidden">Nova Foto</button>
-  </div>
+  <h1>📸 CheckGym</h1>
+  <video id="video" autoplay playsinline width="320" height="240"></video>
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+  <div id="photoContainer"></div>
+  <button id="snap">Tirar Foto</button>
+  <button id="newPhotoBtn">Nova Foto</button>
+
   <script>
-    let video = document.getElementById('video');
-    let canvas = document.getElementById('canvas');
-    let context = canvas.getContext('2d');
-    let takePhotoBtn = document.getElementById('take-photo-btn');
-    let newPhotoBtn = document.getElementById('new-photo-btn');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const photoContainer = document.getElementById('photoContainer');
+    const snap = document.getElementById('snap');
+    const newPhotoBtn = document.getElementById('newPhotoBtn');
+    let geoData = {};
 
-    // Iniciar câmera
     navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        video.srcObject = stream;
-      });
+      .then(stream => video.srcObject = stream);
 
-    function tirarFoto() {
-      context.drawImage(video, 0, 0, 320, 240);
-      canvas.classList.remove('hidden');
-      takePhotoBtn.classList.add('hidden');
-      newPhotoBtn.classList.remove('hidden');
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
+        .then(res => res.json())
+        .then(data => {
+          geoData = {
+            latitude,
+            longitude,
+            localizacao: data.address.suburb + ', ' + data.address.city + ', ' + data.address.state
+          };
+        });
+    });
 
-      const dataURL = canvas.toDataURL('image/png');
-
-      const agora = new Date();
-      const data = agora.toLocaleDateString();
-      const hora = agora.toLocaleTimeString();
-      const timestamp = agora.toISOString();
-
-      const formData = new FormData();
-      formData.append("imagem", dataURL);
-      formData.append("data", data);
-      formData.append("hora", hora);
-      formData.append("time", timestamp);
-
-      fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
-        method: "POST",
-        body: formData
-      })
-      .then(response => response.text())
-      .then(result => {
-        console.log("Enviado:", result);
-      })
-      .catch(error => {
-        console.error("Erro ao enviar:", error);
+    function gerarQRCode(url) {
+      return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        new QRCodeStyling({
+          width: 80,
+          height: 80,
+          data: url
+        }).append(canvas);
+        setTimeout(() => resolve(canvas), 1000);
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      if (takePhotoBtn) {
-        takePhotoBtn.addEventListener('click', tirarFoto);
-      }
-      newPhotoBtn.addEventListener('click', () => {
-        canvas.classList.add('hidden');
-        takePhotoBtn.classList.remove('hidden');
-        newPhotoBtn.classList.add('hidden');
+    snap.onclick = async () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const now = new Date();
+      const data = now.toLocaleDateString();
+      const hora = now.toLocaleTimeString();
+      const time = now.getTime();
+      const link = location.origin + "/verificar.html?time=" + time;
+
+      const qrCanvas = await gerarQRCode(link);
+      ctx.drawImage(qrCanvas, canvas.width - 90, canvas.height - 90, 80, 80);
+
+      const carimbo = `${data} ${hora}
+${geoData.localizacao}
+(${geoData.latitude.toFixed(5)}, ${geoData.longitude.toFixed(5)})`;
+      ctx.fillStyle = "white";
+      ctx.font = "12px sans-serif";
+      ctx.fillText(carimbo, 10, canvas.height - 10);
+
+      const dataURL = canvas.toDataURL("image/png");
+
+      photoContainer.innerHTML = `<img src="${dataURL}" width="320" />`;
+      video.style.display = "none";
+      canvas.style.display = "none";
+      snap.style.display = "none";
+      newPhotoBtn.style.display = "inline";
+
+      fetch("https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          time,
+          data,
+          hora,
+          imagem: dataURL,
+          latitude: geoData.latitude,
+          longitude: geoData.longitude,
+          localizacao: geoData.localizacao
+        }),
+        headers: { "Content-Type": "application/json" }
       });
-    });
+    };
+
+    newPhotoBtn.onclick = () => location.reload();
   </script>
 </body>
 </html>
