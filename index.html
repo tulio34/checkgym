@@ -1,93 +1,117 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>CheckStamp | Verifique seu Esforço</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CheckGym</title>
+  <link rel="icon" href="icon.png" type="image/png">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; text-align: center; }
-    h1 { color: #2c3e50; }
-    video, canvas { max-width: 100%; border-radius: 8px; margin-top: 10px; }
-    #stamp img { margin-top: 15px; border: 2px solid #ccc; border-radius: 6px; }
-    button { margin: 10px; padding: 10px 20px; font-size: 1em; cursor: pointer; border: none; background-color: #3498db; color: white; border-radius: 4px; }
-    #status { margin-top: 10px; color: #555; font-size: 0.9em; }
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    video, canvas, img {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    #controls {
+      margin-top: 1rem;
+    }
+    #location {
+      margin-top: 0.5rem;
+    }
+    #logo {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      height: 48px;
+    }
   </style>
 </head>
 <body>
-  <h1>📸 CheckStamp</h1>
-  <p>Valide seu check-in com segurança e credibilidade.</p>
-
-  <video id="video" autoplay playsinline muted></video><br/>
-  <button id="capture">Capturar Foto</button>
-  <div id="status">Aguardando captura...</div>
-
-  <canvas id="canvas" style="display:none;"></canvas>
-  <div id="stamp"></div>
-
+  <img id="logo" src="icon.png" alt="CheckGym Logo">
+  <video id="camera" autoplay playsinline width="320"></video>
+  <canvas id="snapshot" style="display:none;"></canvas>
+  <img id="photo" style="display:none;" />
+  <div id="controls">
+    <button id="takePhoto">Tirar Foto</button>
+    <button id="newPhoto" style="display:none;">Nova Foto</button>
+  </div>
+  <div id="location"></div>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const captureBtn = document.getElementById('capture');
-    const stampDiv = document.getElementById('stamp');
-    const statusText = document.getElementById('status');
+    const camera = document.getElementById('camera');
+    const canvas = document.getElementById('snapshot');
+    const photo = document.getElementById('photo');
+    const takePhotoBtn = document.getElementById('takePhoto');
+    const newPhotoBtn = document.getElementById('newPhoto');
+    const locationDiv = document.getElementById('location');
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => video.srcObject = stream)
-      .catch(err => alert("Erro ao acessar câmera: " + err));
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        camera.srcObject = stream;
+      });
 
-    captureBtn.onclick = async () => {
-      statusText.textContent = "Capturando e gerando carimbo...";
+    let coords = null;
+    navigator.geolocation.getCurrentPosition(pos => {
+      coords = pos.coords;
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`)
+        .then(res => res.json())
+        .then(data => {
+          const { suburb, city, state } = data.address;
+          locationDiv.textContent = `${suburb || ''}, ${city || ''}, ${state || ''}`;
+        });
+    });
 
+    function drawStamp(ctx, x, y, text, qrcodeDataURL) {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(x, y, 280, 80);
+      ctx.fillStyle = 'black';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(text, x + 10, y + 20);
+      const qrImg = new Image();
+      qrImg.onload = () => ctx.drawImage(qrImg, x + 180, y + 5, 60, 60);
+      qrImg.src = qrcodeDataURL;
+    }
+
+    takePhotoBtn.onclick = async () => {
+      canvas.width = camera.videoWidth;
+      canvas.height = camera.videoHeight;
       const ctx = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(camera, 0, 0);
 
-      const data = await getStampData();
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-      ctx.fillStyle = "#fff";
-      ctx.font = "16px sans-serif";
-      ctx.fillText(data.text, 10, canvas.height - 50);
+      const timestamp = new Date().toLocaleString();
+      const loc = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}` : 'Localização desconhecida';
+      const verifyUrl = `https://checkgym.vercel.app/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${timestamp}`;
 
-      const qrCanvas = document.createElement('canvas');
-      await QRCode.toCanvas(qrCanvas, data.qrData, { width: 60 });
-      ctx.drawImage(qrCanvas, canvas.width - 70, canvas.height - 70);
-
-      const img = new Image();
-      img.src = canvas.toDataURL();
-      img.alt = "Check-in carimbado";
-      stampDiv.innerHTML = '';
-      stampDiv.appendChild(img);
-
-      const link = document.createElement('a');
-      link.href = img.src;
-      link.download = 'checkstamp.png';
-      link.textContent = '📥 Baixar imagem';
-      link.style.display = 'inline-block';
-      link.style.marginTop = '10px';
-      stampDiv.appendChild(link);
-
-      statusText.textContent = "✅ Imagem gerada com sucesso!";
+      QRCode.toDataURL(verifyUrl).then(qrData => {
+        drawStamp(ctx, 10, canvas.height - 90, `${timestamp}\n${loc}`, qrData);
+        photo.src = canvas.toDataURL();
+        photo.style.display = 'block';
+        camera.style.display = 'none';
+        canvas.style.display = 'none';
+        takePhotoBtn.style.display = 'none';
+        newPhotoBtn.style.display = 'inline';
+      });
     };
 
-    async function getStampData() {
-      const now = new Date();
-      let location = "Localização não disponível";
-      try {
-        const pos = await new Promise((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
-        location = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-      } catch (e) {}
-
-      const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-      const hash = btoa(`${timestamp}|${location}`);
-      return {
-        text: `📍 ${location} | 🕒 ${timestamp}`,
-        qrData: `https://checkstamp.vercel.app/verify?code=${hash}`
-      };
-    }
+    newPhotoBtn.onclick = () => {
+      photo.style.display = 'none';
+      camera.style.display = 'block';
+      takePhotoBtn.style.display = 'inline';
+      newPhotoBtn.style.display = 'none';
+    };
   </script>
 </body>
 </html>
