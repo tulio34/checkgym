@@ -126,7 +126,9 @@
       const dataStr = timestamp.toLocaleDateString();
       const horaStr = timestamp.toLocaleTimeString();
       const loc = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}\n${bairroCidadeEstado}` : 'Localização desconhecida';
-      const verificationUrl = `https://checkgym.vercel.app/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${timestamp.toISOString()}`;
+      const timeIso = timestamp.toISOString();
+
+      const verificationUrl = `https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec?time=${encodeURIComponent(timeIso)}`;
 
       QRCode.toDataURL(verificationUrl).then(qrData => {
         drawStamp(ctx, 10, canvas.height - 110, `${dataStr} ${horaStr}\n${loc}`, qrData);
@@ -138,6 +140,14 @@
         takePhotoBtn.style.display = 'none';
         newPhotoBtn.style.display = 'inline';
 
+        // Cria um link para simular salvar na galeria
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `checkin-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
         fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -148,7 +158,8 @@
             longitude: coords.longitude,
             localizacao: bairroCidadeEstado,
             verificationUrl: verificationUrl,
-            imagem: dataURL
+            imagem: dataURL,
+            time: timeIso
           })
         });
       });
