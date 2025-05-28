@@ -29,7 +29,7 @@
     h1 {
       text-align: center;
     }
-    img {
+    img.checkin {
       max-width: 100%;
       border-radius: 12px;
       margin-top: 1rem;
@@ -69,7 +69,7 @@
             resultDiv.innerHTML = '<p class="fail">❌ Check-in não encontrado.</p>';
           } else {
             const imageSrc = match.imagem?.startsWith("data:image") ? match.imagem : '';
-            const imageTag = imageSrc ? `<img src="${imageSrc}" alt="Imagem do check-in" />` : '<p class="fail">⚠️ Imagem indisponível.</p>';
+            const imageTag = imageSrc ? `<img class="checkin" src="${imageSrc}" alt="Imagem do check-in" />` : '<p class="fail">⚠️ Imagem indisponível.</p>';
             resultDiv.innerHTML = `
               <h1>✅ Check-in Confirmado</h1>
               <p class="info"><strong>Data:</strong> ${match.data}</p>
