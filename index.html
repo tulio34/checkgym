@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CheckGym</title>
-  <img id="logo" src="https://www.freeiconspng.com/thumbs/fitness-icon-png/-expander-fitness-trainer-fitness-room-gym-gymnastic-health-512-17.png" alt="CheckGym Logo">
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Running_icon_-_Noun_Project_2522.svg/1024px-Running_icon_-_Noun_Project_2522.svg.png" type="image/png">
   <style>
     :root {
       color-scheme: light dark;
@@ -66,7 +66,7 @@
   </style>
 </head>
 <body>
-  <img id="logo" src="https://www.freeiconspng.com/thumbs/fitness-icon-png/-expander-fitness-trainer-fitness-room-gym-gymnastic-health-512-17.png" alt="CheckGym Logo">
+  <img id="logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Running_icon_-_Noun_Project_2522.svg/1024px-Running_icon_-_Noun_Project_2522.svg.png" alt="CheckGym Logo">
   <video id="camera" autoplay playsinline width="320"></video>
   <canvas id="snapshot" style="display:none;"></canvas>
   <img id="photo" style="display:none;" />
@@ -103,7 +103,7 @@
         });
     });
 
-    function drawStamp(ctx, x, y, text, qrcodeDataURL, callback) {
+    function drawStamp(ctx, x, y, text, qrcodeDataURL) {
       ctx.fillStyle = 'white';
       ctx.fillRect(x, y, 300, 100);
       ctx.fillStyle = 'black';
@@ -112,10 +112,7 @@
         ctx.fillText(line, x + 10, y + 20 + i * 16);
       });
       const qrImg = new Image();
-      qrImg.onload = () => {
-        ctx.drawImage(qrImg, x + 200, y + 10, 60, 60);
-        callback();
-      };
+      qrImg.onload = () => ctx.drawImage(qrImg, x + 200, y + 10, 60, 60);
       qrImg.src = qrcodeDataURL;
     }
 
@@ -125,38 +122,34 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(camera, 0, 0);
 
-      const timestamp = new Date().toLocaleString();
+      const timestamp = new Date();
+      const dataStr = timestamp.toLocaleDateString();
+      const horaStr = timestamp.toLocaleTimeString();
       const loc = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}\n${bairroCidadeEstado}` : 'Localização desconhecida';
-      const verifyUrl = `https://tulio34.github.io/checkgym/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${timestamp}`;
+      const verificationUrl = `https://checkgym.vercel.app/verify.html?lat=${coords.latitude}&lon=${coords.longitude}&time=${timestamp.toISOString()}`;
 
-      QRCode.toDataURL(verifyUrl).then(qrData => {
-        drawStamp(ctx, 10, canvas.height - 110, `${timestamp}\n${loc}`, qrData, () => {
-          canvas.toBlob(blob => {
-            try {
-              if (window.navigator && window.navigator.canShare && window.navigator.canShare({ files: [new File([blob], "checkgym.png", { type: blob.type })] })) {
-                const file = new File([blob], "checkgym.png", { type: blob.type });
-                navigator.share({ files: [file], title: "CheckGym" });
-              } else {
-                const dataURL = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = dataURL;
-                a.download = "checkgym-photo.png";
-                a.style.display = "none";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-              }
-            } catch (err) {
-              console.error("Erro ao tentar salvar ou compartilhar a imagem:", err);
-            }
+      QRCode.toDataURL(verificationUrl).then(qrData => {
+        drawStamp(ctx, 10, canvas.height - 110, `${dataStr} ${horaStr}\n${loc}`, qrData);
+        const dataURL = canvas.toDataURL("image/png");
+        photo.src = dataURL;
+        photo.style.display = 'block';
+        camera.style.display = 'none';
+        canvas.style.display = 'none';
+        takePhotoBtn.style.display = 'none';
+        newPhotoBtn.style.display = 'inline';
 
-            photo.src = URL.createObjectURL(blob);
-            photo.style.display = 'block';
-            camera.style.display = 'none';
-            canvas.style.display = 'none';
-            takePhotoBtn.style.display = 'none';
-            newPhotoBtn.style.display = 'inline';
-          }, 'image/png');
+        fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: dataStr,
+            hora: horaStr,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            localizacao: bairroCidadeEstado,
+            verificationUrl: verificationUrl,
+            imagem: dataURL
+          })
         });
       });
     };
