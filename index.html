@@ -4,173 +4,133 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CheckGym</title>
-  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Running_icon_-_Noun_Project_2522.svg/1024px-Running_icon_-_Noun_Project_2522.svg.png" type="image/png">
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/1/11/Blue_check.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling/lib/qr-code-styling.js"></script>
   <style>
-    :root {
-      color-scheme: light dark;
-    }
+    :root { color-scheme: light dark; }
     body {
       font-family: sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 1rem;
       background: var(--bg);
       color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+    }
+    video, canvas {
+      border-radius: 12px;
+      max-width: 100%;
+    }
+    #photoContainer {
       position: relative;
     }
-    video, canvas, img {
-      max-width: 100%;
-      border-radius: 10px;
-    }
-    #controls {
-      margin-top: 1rem;
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
+    .carimbo {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.9rem;
     }
     button {
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      border: none;
+      margin-top: 1rem;
+      padding: 10px 20px;
       border-radius: 8px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
+      font-size: 1rem;
     }
-    #location {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      text-align: center;
-    }
-    #logo {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      height: 48px;
-    }
-    #bottom-bar {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      height: 50px;
-      background: rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-    }
+    #newPhotoBtn { display: none; }
   </style>
 </head>
 <body>
-  <img id="logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Running_icon_-_Noun_Project_2522.svg/1024px-Running_icon_-_Noun_Project_2522.svg.png" alt="CheckGym Logo">
-  <video id="camera" autoplay playsinline width="320"></video>
-  <canvas id="snapshot" style="display:none;"></canvas>
-  <img id="photo" style="display:none;" />
-  <div id="controls">
-    <button id="takePhoto">📸 Tirar Foto</button>
-    <button id="newPhoto" style="display:none;">🔄 Nova Foto</button>
-  </div>
-  <div id="location"></div>
-  <div id="bottom-bar">CheckGym MVP • Validando Check-ins</div>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <h1>📸 CheckGym</h1>
+  <video id="video" autoplay playsinline width="320" height="240"></video>
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+  <div id="photoContainer"></div>
+  <button id="snap">Tirar Foto</button>
+  <button id="newPhotoBtn">Nova Foto</button>
+
   <script>
-    const camera = document.getElementById('camera');
-    const canvas = document.getElementById('snapshot');
-    const photo = document.getElementById('photo');
-    const takePhotoBtn = document.getElementById('takePhoto');
-    const newPhotoBtn = document.getElementById('newPhoto');
-    const locationDiv = document.getElementById('location');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const photoContainer = document.getElementById('photoContainer');
+    const snap = document.getElementById('snap');
+    const newPhotoBtn = document.getElementById('newPhotoBtn');
+    let geoData = {};
 
     navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        camera.srcObject = stream;
-      });
+      .then(stream => video.srcObject = stream);
 
-    let coords = null;
-    let bairroCidadeEstado = '';
     navigator.geolocation.getCurrentPosition(pos => {
-      coords = pos.coords;
-      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`)
+      const { latitude, longitude } = pos.coords;
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`)
         .then(res => res.json())
         .then(data => {
-          const { suburb, city, town, state } = data.address;
-          bairroCidadeEstado = `${suburb || ''}, ${city || town || ''}, ${state || ''}`;
-          locationDiv.textContent = bairroCidadeEstado;
+          geoData = {
+            latitude,
+            longitude,
+            localizacao: data.address.suburb + ', ' + data.address.city + ', ' + data.address.state
+          };
         });
     });
 
-    function drawStamp(ctx, x, y, text, qrcodeDataURL) {
-      ctx.fillStyle = 'white';
-      ctx.fillRect(x, y, 300, 100);
-      ctx.fillStyle = 'black';
-      ctx.font = '12px sans-serif';
-      text.split('\n').forEach((line, i) => {
-        ctx.fillText(line, x + 10, y + 20 + i * 16);
+    function gerarQRCode(url) {
+      return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        new QRCodeStyling({
+          width: 80,
+          height: 80,
+          data: url
+        }).append(canvas);
+        setTimeout(() => resolve(canvas), 1000);
       });
-      const qrImg = new Image();
-      qrImg.onload = () => ctx.drawImage(qrImg, x + 200, y + 10, 60, 60);
-      qrImg.src = qrcodeDataURL;
     }
 
-    takePhotoBtn.onclick = async () => {
-      canvas.width = camera.videoWidth;
-      canvas.height = camera.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(camera, 0, 0);
+    snap.onclick = async () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const now = new Date();
+      const data = now.toLocaleDateString();
+      const hora = now.toLocaleTimeString();
+      const time = now.getTime();
+      const link = location.origin + "/verificar.html?time=" + time;
 
-      const timestamp = new Date();
-      const dataStr = timestamp.toLocaleDateString();
-      const horaStr = timestamp.toLocaleTimeString();
-      const loc = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}\n${bairroCidadeEstado}` : 'Localização desconhecida';
-      const timeIso = timestamp.toISOString();
+      const qrCanvas = await gerarQRCode(link);
+      ctx.drawImage(qrCanvas, canvas.width - 90, canvas.height - 90, 80, 80);
 
-      const verificationUrl = `https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec?time=${encodeURIComponent(timeIso)}`;
+      const carimbo = `${data} ${hora}
+${geoData.localizacao}
+(${geoData.latitude.toFixed(5)}, ${geoData.longitude.toFixed(5)})`;
+      ctx.fillStyle = "white";
+      ctx.font = "12px sans-serif";
+      ctx.fillText(carimbo, 10, canvas.height - 10);
 
-      QRCode.toDataURL(verificationUrl).then(qrData => {
-        drawStamp(ctx, 10, canvas.height - 110, `${dataStr} ${horaStr}\n${loc}`, qrData);
-        const dataURL = canvas.toDataURL("image/png");
-        photo.src = dataURL;
-        photo.style.display = 'block';
-        camera.style.display = 'none';
-        canvas.style.display = 'none';
-        takePhotoBtn.style.display = 'none';
-        newPhotoBtn.style.display = 'inline';
+      const dataURL = canvas.toDataURL("image/png");
 
-        // Cria um link para simular salvar na galeria
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `checkin-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      photoContainer.innerHTML = `<img src="${dataURL}" width="320" />`;
+      video.style.display = "none";
+      canvas.style.display = "none";
+      snap.style.display = "none";
+      newPhotoBtn.style.display = "inline";
 
-        fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            data: dataStr,
-            hora: horaStr,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            localizacao: bairroCidadeEstado,
-            verificationUrl: verificationUrl,
-            imagem: dataURL,
-            time: timeIso
-          })
-        });
+      fetch("https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          time,
+          data,
+          hora,
+          imagem: dataURL,
+          latitude: geoData.latitude,
+          longitude: geoData.longitude,
+          localizacao: geoData.localizacao
+        }),
+        headers: { "Content-Type": "application/json" }
       });
     };
 
-    newPhotoBtn.onclick = () => {
-      photo.style.display = 'none';
-      camera.style.display = 'block';
-      takePhotoBtn.style.display = 'inline';
-      newPhotoBtn.style.display = 'none';
-    };
+    newPhotoBtn.onclick = () => location.reload();
   </script>
 </body>
 </html>
