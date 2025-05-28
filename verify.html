@@ -3,59 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verificação • CheckGym</title>
+  <title>Verificação CheckGym</title>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
       font-family: sans-serif;
-      background: #f4f4f4;
-      color: #333;
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      text-align: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
       padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
     h1 {
-      color: #2e7d32;
+      text-align: center;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin-top: 1rem;
     }
     .info {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       margin-top: 1rem;
-      max-width: 400px;
-      width: 100%;
+      font-size: 1rem;
     }
-    .error {
+    .fail {
       color: red;
-      font-weight: bold;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h1>Verificação de Check-in</h1>
-  <div class="info">
-    <p id="status">⏳ Carregando...</p>
-    <p id="data"></p>
-    <p id="hora"></p>
+  <div class="card" id="result">
+    <h1>Verificando Check-in...</h1>
   </div>
-
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const lat = params.get("lat");
-    const lon = params.get("lon");
-    const time = params.get("time");
+    const resultDiv = document.getElementById('result');
+    const urlParams = new URLSearchParams(window.location.search);
+    const timeParam = urlParams.get('time');
 
-    if (lat && lon && time) {
-      document.getElementById("status").textContent = "✅ Check-in válido!";
-      document.getElementById("data").textContent = `📍 Localização: ${lat}, ${lon}`;
-      document.getElementById("hora").textContent = `🕒 Data e Hora: ${decodeURIComponent(time)}`;
+    if (!timeParam) {
+      resultDiv.innerHTML = '<p class="fail">❌ Nenhum código foi encontrado.</p>';
     } else {
-      document.getElementById("status").textContent = "❌ Nenhum código válido foi encontrado.";
-      document.getElementById("status").classList.add("error");
+      fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec")
+        .then(res => res.json())
+        .then(data => {
+          const match = data.find(entry => entry.time === timeParam);
+          if (!match) {
+            resultDiv.innerHTML = '<p class="fail">❌ Check-in não encontrado.</p>';
+          } else {
+            resultDiv.innerHTML = `
+              <h1>✅ Check-in Confirmado</h1>
+              <p class="info"><strong>Data:</strong> ${match.data}</p>
+              <p class="info"><strong>Hora:</strong> ${match.hora}</p>
+              <p class="info"><strong>Localização:</strong> ${match.localizacao}</p>
+              <p class="info"><strong>Coordenadas:</strong> ${match.latitude}, ${match.longitude}</p>
+              <img src="${match.imagem}" alt="Imagem do check-in" />
+            `;
+          }
+        })
+        .catch(() => {
+          resultDiv.innerHTML = '<p class="fail">❌ Erro ao verificar os dados.</p>';
+        });
     }
   </script>
 </body>
