@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>CheckStamp | Verifique seu Esforço</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; text-align: center; }
+    h1 { color: #2c3e50; }
+    video, canvas { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+    #stamp img { margin-top: 15px; border: 2px solid #ccc; border-radius: 6px; }
+    button { margin: 10px; padding: 10px 20px; font-size: 1em; cursor: pointer; border: none; background-color: #3498db; color: white; border-radius: 4px; }
+    #status { margin-top: 10px; color: #555; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>📸 CheckStamp</h1>
+  <p>Valide seu check-in com segurança e credibilidade.</p>
+
+  <video id="video" autoplay playsinline muted></video><br/>
+  <button id="capture">Capturar Foto</button>
+  <div id="status">Aguardando captura...</div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+  <div id="stamp"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('capture');
+    const stampDiv = document.getElementById('stamp');
+    const statusText = document.getElementById('status');
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert("Erro ao acessar câmera: " + err));
+
+    captureBtn.onclick = async () => {
+      statusText.textContent = "Capturando e gerando carimbo...";
+
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      const data = await getStampData();
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+      ctx.fillStyle = "#fff";
+      ctx.font = "16px sans-serif";
+      ctx.fillText(data.text, 10, canvas.height - 50);
+
+      const qrCanvas = document.createElement('canvas');
+      await QRCode.toCanvas(qrCanvas, data.qrData, { width: 60 });
+      ctx.drawImage(qrCanvas, canvas.width - 70, canvas.height - 70);
+
+      const img = new Image();
+      img.src = canvas.toDataURL();
+      img.alt = "Check-in carimbado";
+      stampDiv.innerHTML = '';
+      stampDiv.appendChild(img);
+
+      const link = document.createElement('a');
+      link.href = img.src;
+      link.download = 'checkstamp.png';
+      link.textContent = '📥 Baixar imagem';
+      link.style.display = 'inline-block';
+      link.style.marginTop = '10px';
+      stampDiv.appendChild(link);
+
+      statusText.textContent = "✅ Imagem gerada com sucesso!";
+    };
+
+    async function getStampData() {
+      const now = new Date();
+      let location = "Localização não disponível";
+      try {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+        location = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+      } catch (e) {}
+
+      const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      const hash = btoa(`${timestamp}|${location}`);
+      return {
+        text: `📍 ${location} | 🕒 ${timestamp}`,
+        qrData: `https://checkstamp.vercel.app/verify?code=${hash}`
+      };
+    }
+  </script>
+</body>
+</html>

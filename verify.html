@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verificação | CheckStamp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
+    .status { font-size: 1.5em; margin-top: 20px; }
+    .valid { color: green; }
+    .invalid { color: red; }
+    code { background: #eee; padding: 5px; display: block; margin-top: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Verificação de Check-in</h1>
+  <div id="result" class="status">Carregando verificação...</div>
+  <code id="rawData"></code>
+
+  <script>
+    function getParam(param) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(param);
+    }
+
+    const code = getParam('code');
+    const resultDiv = document.getElementById('result');
+    const rawDiv = document.getElementById('rawData');
+
+    if (code) {
+      try {
+        const decoded = atob(code);
+        resultDiv.textContent = "✅ Check-in válido!";
+        resultDiv.classList.add("valid");
+        rawDiv.textContent = decoded;
+      } catch (e) {
+        resultDiv.textContent = "❌ QR Code inválido ou corrompido.";
+        resultDiv.classList.add("invalid");
+      }
+    } else {
+      resultDiv.textContent = "❌ Nenhum código encontrado.";
+      resultDiv.classList.add("invalid");
+    }
+  </script>
+</body>
+</html>
