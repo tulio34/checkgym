@@ -136,7 +136,7 @@
         const time = now.getTime();
         const timestamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
         const fileName = `checkgym_${timestamp}.png`;
-        const linkQR = location.origin + "checkgym/verificar.html?time=" + time;
+        const linkQR = location.origin + "/checkgym/verificar.html?time=" + time;
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
