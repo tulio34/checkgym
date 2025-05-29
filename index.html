@@ -2,76 +2,78 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CheckGym</title>
   <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" />
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
+    html, body {
       margin: 0;
-      padding: 1rem;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
       background: #f4f4f4;
       color: #111;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
     }
     header {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 1rem;
+      padding-top: 0.5rem;
     }
     header img {
-      width: 100px;
-      margin-bottom: 0.5rem;
+      width: 80px;
+      margin-bottom: 0.25rem;
     }
     h1 {
-      font-size: 1.5rem;
-      margin: 0;
+      font-size: 1.25rem;
+      margin: 0.25rem 0;
     }
-    video, canvas, img {
+    #video, #canvas {
       border-radius: 12px;
-      width: 100%;
+      width: 100vw;
       max-width: 480px;
-      height: auto;
+      height: calc(100vh - 240px);
+      object-fit: cover;
     }
-    #photoContainer {
-      margin-top: 1rem;
-      position: relative;
+    #photoContainer img {
+      width: 100vw;
+      max-width: 480px;
+      border-radius: 12px;
     }
-    button, select {
-      margin-top: 1rem;
-      padding: 0.75rem 1.5rem;
+    button, .icon-btn {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
       font-size: 1rem;
       border-radius: 8px;
-      cursor: pointer;
       border: none;
+      cursor: pointer;
     }
     .icon-btn {
       background: #1976d2;
       color: white;
-      border: none;
+      width: 42px;
+      height: 42px;
+      font-size: 22px;
       border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      font-size: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
   <header>
-    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqryJCanxY5ZvvoTf6OJkyr7W9ozVMj1NN0g&s" alt="Logo CheckGym" />
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="Logo CheckGym" />
     <h1>📸 CheckGym</h1>
   </header>
 
-  <button class="icon-btn" id="toggleCameraBtn">🔄</button>
-
+  <button class="icon-btn" id="toggleCameraBtn" title="Trocar câmera">🔄</button>
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <div id="photoContainer"></div>
@@ -155,7 +157,7 @@
 
         const dataURL = canvas.toDataURL("image/png");
 
-        photoContainer.innerHTML = `<img src="${dataURL}" style="width:100%; max-width:480px; border-radius: 12px;" />`;
+        photoContainer.innerHTML = `<img src="${dataURL}" />`;
 
         video.style.display = "none";
         snap.style.display = "none";
