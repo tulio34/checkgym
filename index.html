@@ -159,6 +159,9 @@ ${geoData.localizacao}
 
       fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           time,
           data,
@@ -168,13 +171,16 @@ ${geoData.localizacao}
           longitude: geoData.longitude,
           localizacao: geoData.localizacao
         }),
-        headers: { "Content-Type": "application/json" }
       });
 
       const link = document.createElement('a');
       link.href = dataURL;
       link.download = fileName;
       link.click();
+
+      .then(res => res.json())
+.then(console.log)
+.catch(console.error);
     };
 
     newPhotoBtn.onclick = () => location.reload();
