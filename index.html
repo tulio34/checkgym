@@ -157,8 +157,8 @@ ${geoData.localizacao}
       snap.style.display = "none";
       newPhotoBtn.style.display = "inline";
 
-      fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
-        method: "POST",
+      fetch("https://checkgym.tuliospmenezes.workers.dev/", {
+  method: "POST",
         body: JSON.stringify({
           time,
           data,
