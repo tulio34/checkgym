@@ -61,7 +61,7 @@
     if (!timeParam) {
       resultDiv.innerHTML = '<p class="fail">❌ Nenhum código foi encontrado.</p>';
     } else {
-      fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec")
+      fetch("https://checkgym.tuliospmenezes.workers.dev/")
         .then(res => res.json())
         .then(data => {
           const match = data.find(entry => decodeURIComponent(entry.time) === timeParam);
