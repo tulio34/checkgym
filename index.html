@@ -159,6 +159,8 @@ ${geoData.localizacao}
 
       fetch("https://checkgym.tuliospmenezes.workers.dev/", {
   method: "POST",
+  mode: "cors",
+  credentials: "omit",
         body: JSON.stringify({
           time,
           data,
