@@ -1,51 +1,84 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CheckGym</title>
-  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/1/11/Blue_check.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qr-code-styling/lib/qr-code-styling.js"></script>
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: light dark;
+    }
     body {
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg, #f9f9f9);
+      color: var(--text, #111);
       margin: 0;
       padding: 1rem;
-      background: var(--bg);
-      color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    video, canvas {
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    header img {
+      width: 80px;
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    video, canvas, img {
       border-radius: 12px;
       max-width: 100%;
     }
     #photoContainer {
+      margin-top: 1rem;
       position: relative;
     }
-    .carimbo {
+    .info-bar {
       position: absolute;
-      bottom: 10px;
-      left: 10px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.75);
       color: white;
-      background: rgba(0,0,0,0.6);
-      padding: 8px;
-      border-radius: 8px;
-      font-size: 0.9rem;
+      padding: 6px;
+      font-size: 0.8rem;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      line-height: 1.2;
     }
     button {
-      margin-top: 1rem;
-      padding: 10px 20px;
+      background: #1976d2;
+      color: white;
+      border: none;
       border-radius: 8px;
+      padding: 0.75rem 1.5rem;
       font-size: 1rem;
+      margin-top: 1rem;
+      cursor: pointer;
     }
-    #newPhotoBtn { display: none; }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #newPhotoBtn { display: none; background: #555; }
   </style>
 </head>
 <body>
-  <h1>📸 CheckGym</h1>
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="Logo CheckGym" />
+    <h1>CheckGym</h1>
+  </header>
+
   <video id="video" autoplay playsinline width="320" height="240"></video>
   <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
   <div id="photoContainer"></div>
@@ -72,7 +105,7 @@
           geoData = {
             latitude,
             longitude,
-            localizacao: data.address.suburb + ', ' + data.address.city + ', ' + data.address.state
+            localizacao: (data.address.suburb || '') + ', ' + (data.address.city || data.address.town || '') + ', ' + (data.address.state || '')
           };
         });
     });
@@ -90,32 +123,41 @@
     }
 
     snap.onclick = async () => {
+      if (!geoData.latitude) {
+        alert("Aguardando localização. Tente novamente em alguns segundos.");
+        return;
+      }
+
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const now = new Date();
-      const data = now.toLocaleDateString();
-      const hora = now.toLocaleTimeString();
+      const data = now.toLocaleDateString('pt-BR');
+      const hora = now.toLocaleTimeString('pt-BR');
       const time = now.getTime();
-      const link = location.origin + "/verificar.html?time=" + time;
+      const timestamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
+      const fileName = `checkgym_${timestamp}.png`;
+      const linkQR = location.origin + "/verificar.html?time=" + time;
 
-      const qrCanvas = await gerarQRCode(link);
+      const qrCanvas = await gerarQRCode(linkQR);
       ctx.drawImage(qrCanvas, canvas.width - 90, canvas.height - 90, 80, 80);
 
-      const carimbo = `${data} ${hora}
+      const carimboTexto = `${data} ${hora}
 ${geoData.localizacao}
 (${geoData.latitude.toFixed(5)}, ${geoData.longitude.toFixed(5)})`;
       ctx.fillStyle = "white";
       ctx.font = "12px sans-serif";
-      ctx.fillText(carimbo, 10, canvas.height - 10);
+      const lines = carimboTexto.split('\n');
+      lines.forEach((line, i) => ctx.fillText(line, 10, canvas.height - 45 + i * 14));
 
       const dataURL = canvas.toDataURL("image/png");
 
-      photoContainer.innerHTML = `<img src="${dataURL}" width="320" />`;
+      photoContainer.innerHTML = `<img src="${dataURL}" width="320"><div class="info-bar">${carimboTexto.replaceAll("\n", "<br>")}</div>`;
+
       video.style.display = "none";
       canvas.style.display = "none";
       snap.style.display = "none";
       newPhotoBtn.style.display = "inline";
 
-      fetch("https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbwQIp1__10IrrOPOmJRb-MI-X2gGJZt72JmB4_zA466aSfDRCA79OKcuvVrICULki8U8Q/exec", {
         method: "POST",
         body: JSON.stringify({
           time,
@@ -128,6 +170,11 @@ ${geoData.localizacao}
         }),
         headers: { "Content-Type": "application/json" }
       });
+
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = fileName;
+      link.click();
     };
 
     newPhotoBtn.onclick = () => location.reload();
