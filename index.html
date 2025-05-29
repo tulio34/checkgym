@@ -8,19 +8,30 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 1rem;
+      background: #f4f4f4;
+      color: #111;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: #f9f9f9;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    header img {
+      width: 100px;
+      margin-bottom: 0.5rem;
     }
     h1 {
       font-size: 1.5rem;
-      margin-bottom: 1rem;
+      margin: 0;
     }
-    video, canvas {
+    video, canvas, img {
       border-radius: 12px;
       width: 100%;
       max-width: 480px;
@@ -30,39 +41,42 @@
       margin-top: 1rem;
       position: relative;
     }
-    .info-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      padding: 6px;
-      font-size: 0.8rem;
-      border-radius: 0 0 12px 12px;
-    }
     button, select {
       margin-top: 1rem;
-      padding: 10px 20px;
+      padding: 0.75rem 1.5rem;
       font-size: 1rem;
       border-radius: 8px;
       cursor: pointer;
+      border: none;
+    }
+    .icon-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h1>📸 CheckGym</h1>
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="Logo CheckGym" />
+    <h1>📸 CheckGym</h1>
+  </header>
 
-  <select id="cameraSelect">
-    <option value="environment">📷 Traseira</option>
-    <option value="user">🤳 Frontal</option>
-  </select>
+  <button class="icon-btn" id="toggleCameraBtn">🔄</button>
 
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <div id="photoContainer"></div>
   <button id="snap">Tirar Foto</button>
-  <button id="newPhotoBtn" style="display:none;">Nova Foto</button>
+  <button id="newPhotoBtn" style="display:none; background: #555;">Nova Foto</button>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -72,9 +86,10 @@
       const snap = document.getElementById('snap');
       const newPhotoBtn = document.getElementById('newPhotoBtn');
       const photoContainer = document.getElementById('photoContainer');
-      const cameraSelect = document.getElementById('cameraSelect');
+      const toggleCameraBtn = document.getElementById('toggleCameraBtn');
 
       let geoData = {};
+      let currentFacing = 'environment';
 
       function startCamera(facingMode = "environment") {
         navigator.mediaDevices.getUserMedia({ video: { facingMode } })
@@ -85,9 +100,9 @@
 
       startCamera();
 
-      cameraSelect.addEventListener("change", () => {
-        const facingMode = cameraSelect.value;
-        startCamera(facingMode);
+      toggleCameraBtn.addEventListener("click", () => {
+        currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+        startCamera(currentFacing);
       });
 
       navigator.geolocation.getCurrentPosition(pos => {
@@ -140,7 +155,7 @@
 
         const dataURL = canvas.toDataURL("image/png");
 
-        photoContainer.innerHTML = `<img src="${dataURL}" style="width:100%; max-width:480px; border-radius: 12px;" /><div class="info-bar">${carimboTexto.replaceAll("\n", "<br>")}</div>`;
+        photoContainer.innerHTML = `<img src="${dataURL}" style="width:100%; max-width:480px; border-radius: 12px;" />`;
 
         video.style.display = "none";
         snap.style.display = "none";
