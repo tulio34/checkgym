@@ -69,7 +69,7 @@
 </head>
 <body>
   <header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/Gym_icon.png" alt="Logo CheckGym" />
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqryJCanxY5ZvvoTf6OJkyr7W9ozVMj1NN0g&s" alt="Logo CheckGym" />
     <h1>📸 CheckGym</h1>
   </header>
 
@@ -136,7 +136,7 @@
         const time = now.getTime();
         const timestamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
         const fileName = `checkgym_${timestamp}.png`;
-        const linkQR = location.origin + "/verificar.html?time=" + time;
+        const linkQR = location.origin + "checkgym/verificar.html?time=" + time;
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
